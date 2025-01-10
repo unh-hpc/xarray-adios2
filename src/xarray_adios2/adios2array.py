@@ -29,7 +29,7 @@ class Adios2Array(BackendArray):
         self.dtype = array.dtype
 
     def get_array(self, needs_lock: bool = True) -> adios2py.ArrayProxy:
-        return self.datastore._acquire(needs_lock)[self.variable_name]
+        return self.datastore.acquire(needs_lock)[self.variable_name]
 
     def __getitem__(self, key: indexing.ExplicitIndexer) -> NDArray[Any]:
         return indexing.explicit_indexing_adapter(  # type: ignore[no-any-return]

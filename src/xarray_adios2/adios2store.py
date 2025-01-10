@@ -73,7 +73,7 @@ class Adios2Store(WritableCFDataStore):
         manager = CachingFileManager(adios2py.File, filename, mode=mode)
         return cls(manager, mode=mode, lock=lock, autoclose=autoclose)
 
-    def _acquire(self, needs_lock: bool = True) -> adios2py.Group:
+    def acquire(self, needs_lock: bool = True) -> adios2py.Group:
         with self._manager.acquire_context(needs_lock) as group:  # type: ignore[no-untyped-call]
             ds = group
         assert isinstance(ds, adios2py.Group)
@@ -81,7 +81,7 @@ class Adios2Store(WritableCFDataStore):
 
     @property
     def ds(self) -> adios2py.Group:
-        return self._acquire()
+        return self.acquire()
 
     def open_store_variable(self, name: str, var: adios2py.ArrayProxy) -> Variable:
         attrs = dict(var.attrs)

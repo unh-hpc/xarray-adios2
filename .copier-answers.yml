@@ -1,0 +1,12 @@
+# Changes here will be overwritten by Copier; NEVER EDIT MANUALLY
+_commit: 2024.08.19
+_src_path: gh:scientific-python/cookie
+backend: setuptools621
+email: kai.germaschewski@gmail.com
+full_name: Kai Germaschewski
+license: Apache
+org: unh-hpc
+project_name: xarray-adios2
+project_short_description: An xarray backend to read/write ADIOS2 files/streams.
+url: https://github.com/unh-hpc/xarray-adios2
+vcs: true

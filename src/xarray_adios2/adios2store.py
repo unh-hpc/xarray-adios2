@@ -41,15 +41,16 @@ class Adios2Store(WritableCFDataStore):
 
     def __init__(
         self,
-        manager: FileManager | adios2py.File,
+        manager: FileManager | adios2py.Group,
         mode: str | None = None,
         lock: Lock = ADIOS2_LOCK,
         autoclose: bool = False,
     ):
-        if isinstance(manager, adios2py.File):
-            mode = manager._mode
+        if isinstance(manager, adios2py.Group):
+            mode = manager._file._mode
             manager = DummyFileManager(manager)  # type: ignore[no-untyped-call]
 
+        assert isinstance(manager, FileManager)
         self._manager = manager
         self._mode = mode
         self.lock = ensure_lock(lock)  # type: ignore[no-untyped-call]

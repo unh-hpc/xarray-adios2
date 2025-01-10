@@ -12,14 +12,14 @@ def test1_file(tmp_path):
     filename = tmp_path / "test1.bp"
     with adios2py.File(filename, mode="w") as file:
         for n, step in zip(range(5), file.steps, strict=False):
-            step["step"] = n
             step["time"] = 10.0 * n
+            step["time"].attrs["dimensions"] = "time"
 
             step["x"] = np.linspace(0, 1, 10)
-            step["x"].attrs["dimensions"] = "x"
+            step["x"].attrs["dimensions"] = "redundant x"
 
-            step["arr1d"] = np.arange(10)
-            step["arr1d"].attrs["dimensions"] = "x"
+            step["arr1d"] = np.arange(10) + n
+            step["arr1d"].attrs["dimensions"] = "time x"
 
     return filename
 
@@ -27,9 +27,20 @@ def test1_file(tmp_path):
 def test_ctor(test1_file):
     with adios2py.File(test1_file, mode="rra") as file:
         store = Adios2Store(file)
-        assert store.ds.keys() == {"arr1d", "x", "step", "time"}
+        assert store.ds.keys() == {"arr1d", "x", "time"}
 
 
 def test_open(test1_file):
     store = Adios2Store.open(test1_file, mode="rra")
-    assert store.ds.keys() == {"arr1d", "x", "step", "time"}
+    assert store.ds.keys() == {"arr1d", "x", "time"}
+
+
+def test_load(test1_file):
+    store = Adios2Store.open(test1_file, mode="rra")
+    vars, attrs = store.load()  # type: ignore[no-untyped-call]
+    assert vars["arr1d"].sizes == {"time": 5, "x": 10}
+    assert vars["x"].sizes == {"redundant": 5, "x": 10}
+    assert vars["time"].sizes == {"time": 5}
+
+    assert np.array_equal(vars["arr1d"][0], np.arange(10))
+    assert np.array_equal(vars["arr1d"][1], np.arange(10) + 1)

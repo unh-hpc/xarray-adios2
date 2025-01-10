@@ -29,7 +29,7 @@ classifiers = [
   "Typing :: Typed",
 ]
 dynamic = ["version"]
-dependencies = ["adios2py", "xarray"]
+dependencies = ["adios2py", "xarray", "typing-extensions"]
 
 [project.optional-dependencies]
 test = ["pytest >=6", "pytest-cov >=3"]

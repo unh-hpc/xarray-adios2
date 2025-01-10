@@ -48,6 +48,9 @@ Homepage = "https://github.com/unh-hpc/xarray-adios2"
 Discussions = "https://github.com/unh-hpc/xarray-adios2/discussions"
 Changelog = "https://github.com/unh-hpc/xarray-adios2/releases"
 
+[project.entry-points."xarray.backends"]
+adios2_engine = "xarray_adios2:Adios2BackendEntrypoint"
+
 
 [tool.setuptools_scm]
 write_to = "src/xarray_adios2/_version.py"

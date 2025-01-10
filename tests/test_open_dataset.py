@@ -5,6 +5,15 @@ import numpy as np
 import pytest
 import xarray as xr
 
+from xarray_adios2 import Adios2Store
+
+
+def test_open(test_file, sample_dataset):
+    with adios2py.File(test_file, mode="rra") as file:  # noqa: SIM117
+        with file.steps.next() as step:
+            with xr.open_dataset(Adios2Store(step)) as ds:
+                assert ds == sample_dataset
+
 
 @pytest.fixture
 def test1_file(tmp_path):
@@ -23,7 +32,7 @@ def test1_file(tmp_path):
     return filename
 
 
-def test_open(test1_file):
+def test_open_by_step(test1_file):
     with xr.open_dataset(test1_file) as ds:
         assert ds.keys() == {"arr1d"}
         assert ds.sizes == {"time": 5, "x": 10, "redundant": 5}

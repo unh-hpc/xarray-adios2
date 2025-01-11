@@ -8,15 +8,22 @@ import xarray as xr
 from xarray_adios2 import Adios2Store
 
 
-def test_open(test_file, sample_dataset):
-    with adios2py.File(test_file, mode="rra") as file:  # noqa: SIM117
+def test_open_one_step_adios2py(one_step_file_adios2py, sample_dataset):
+    with adios2py.File(one_step_file_adios2py, mode="rra") as file:  # noqa: SIM117
+        with file.steps.next() as step:
+            with xr.open_dataset(Adios2Store(step)) as ds:
+                assert ds == sample_dataset
+
+
+def test_open_one_step(one_step_file, sample_dataset):
+    with adios2py.File(one_step_file, mode="rra") as file:  # noqa: SIM117
         with file.steps.next() as step:
             with xr.open_dataset(Adios2Store(step)) as ds:
                 assert ds == sample_dataset
 
 
 @pytest.fixture
-def test_by_step_file(tmp_path):
+def test_by_step_file_adios2py(tmp_path):
     filename = tmp_path / "test1.bp"
     with adios2py.File(filename, mode="w") as file:
         for n, step in zip(range(5), file.steps, strict=False):
@@ -32,8 +39,8 @@ def test_by_step_file(tmp_path):
     return filename
 
 
-def test_open_by_step(test_by_step_file):
-    with xr.open_dataset(test_by_step_file) as ds:
+def test_open_by_step(test_by_step_file_adios2py):
+    with xr.open_dataset(test_by_step_file_adios2py) as ds:
         assert ds.keys() == {"arr1d"}
         assert ds.sizes == {"time": 5, "x": 10, "redundant": 5}
         assert ds.coords.keys() == {"time", "x"}

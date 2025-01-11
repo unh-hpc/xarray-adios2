@@ -110,3 +110,39 @@ class Adios2Store(WritableCFDataStore):
     @override
     def get_dimensions(self) -> Never:
         raise NotImplementedError()
+
+    @override
+    def store(
+        self,
+        variables: Mapping[str, Variable],
+        attributes: Mapping[str, Any],
+        check_encoding_set: Any = frozenset(),
+        writer: Any = None,
+        unlimited_dims: bool | None = None,
+    ) -> None:
+        variables, attributes = self.encode(variables, attributes)  # type:ignore[no-untyped-call]
+
+        if isinstance(self.ds, adios2py.File):
+            with self.ds.steps.next() as step:
+                self._write(step, variables, attributes)
+        elif isinstance(self.ds, adios2py.Step):
+            self._write(self.ds, variables, attributes)
+        else:
+            raise NotImplementedError()
+
+    def _write(
+        self,
+        step: adios2py.Step,
+        variables: Mapping[str, Variable],
+        attributes: Mapping[str, Any],
+    ) -> None:
+        for name, var in variables.items():
+            step[name] = var
+            dims = var.encoding.pop("prepend dimensions", "").split() + list(var.dims)
+            step[name].attrs["dimensions"] = " ".join(dims)
+            step[name].attrs["dtype"] = str(var.dtype)
+            for attr_name, attr in var.attrs.items():
+                step[name].attrs[attr_name] = attr
+
+        for attr_name, attr in attributes.items():
+            step.attrs[attr_name] = attr

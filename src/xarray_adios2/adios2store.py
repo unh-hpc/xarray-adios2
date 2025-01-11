@@ -162,13 +162,12 @@ class Adios2Store(WritableCFDataStore):
                     self.ds.attrs[name] = attr
 
                 n_steps = len(variables[step_dimension])
-                for n in range(n_steps):
-                    with self.ds.steps.next() as step:
-                        step_variables = {
-                            name: var.isel({step_dimension: n}, missing_dims="ignore")
-                            for name, var in variables.items()
-                        }
-                        Adios2Store(step).store(step_variables, {})
+                for n, step in zip(range(n_steps), self.ds.steps, strict=False):
+                    step_variables = {
+                        name: var.isel({step_dimension: n}, missing_dims="ignore")
+                        for name, var in variables.items()
+                    }
+                    Adios2Store(step).store(step_variables, {})
             else:
                 # write whole Dataset into single step
                 with self.ds.steps.next() as step:

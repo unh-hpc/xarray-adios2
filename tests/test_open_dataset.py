@@ -23,7 +23,7 @@ def test_open_one_step(one_step_file, sample_dataset):
 
 
 @pytest.fixture
-def test_by_step_file_adios2py(tmp_path, sample_dataset):
+def by_step_file_adios2py(tmp_path, sample_dataset):
     filename = tmp_path / "test1.bp"
     step_dimension = "time"
     with adios2py.File(filename, mode="w") as file:
@@ -37,8 +37,24 @@ def test_by_step_file_adios2py(tmp_path, sample_dataset):
     return filename
 
 
-def test_open_by_step(test_by_step_file_adios2py, sample_dataset):
-    with xr.open_dataset(test_by_step_file_adios2py) as ds:
+@pytest.fixture
+def by_step_file(tmp_path, sample_dataset):
+    filename = tmp_path / "test1.bp"
+    step_dimension = "time"
+    with adios2py.File(filename, mode="w") as file:
+        file.attrs["step_dimension"] = step_dimension
+        for time, step in zip(sample_dataset[step_dimension], file.steps, strict=False):
+            store = Adios2Store(step)
+            ds_step = sample_dataset.sel({step_dimension: time})
+            ds_step.dump_to_store(store)
+
+    return filename
+
+
+@pytest.mark.parametrize("filename", ["by_step_file_adios2py", "by_step_file"])
+def test_open_by_step(filename, sample_dataset, request):
+    filename = request.getfixturevalue(filename)
+    with xr.open_dataset(filename) as ds:
         assert ds.keys() == sample_dataset.keys()
         assert ds.sizes == sample_dataset.sizes
         assert ds.coords.keys() == sample_dataset.coords.keys()
@@ -50,8 +66,10 @@ def test_open_by_step(test_by_step_file_adios2py, sample_dataset):
                 assert np.array_equal(ds[name], sample_dataset[name])
 
 
-def test_open_by_step_streaming(test_by_step_file_adios2py, sample_dataset):
-    with adios2py.File(test_by_step_file_adios2py, "r") as file:
+@pytest.mark.parametrize("filename", ["by_step_file_adios2py", "by_step_file"])
+def test_open_by_step_streaming(filename, sample_dataset, request):
+    filename = request.getfixturevalue(filename)
+    with adios2py.File(filename, "r") as file:
         for n, step in enumerate(file.steps):
             ds_step = xr.open_dataset(Adios2Store(step))
             ds_step = ds_step.set_coords("time")

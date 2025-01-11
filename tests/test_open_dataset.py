@@ -16,7 +16,7 @@ def test_open(test_file, sample_dataset):
 
 
 @pytest.fixture
-def test1_file(tmp_path):
+def test_by_step_file(tmp_path):
     filename = tmp_path / "test1.bp"
     with adios2py.File(filename, mode="w") as file:
         for n, step in zip(range(5), file.steps, strict=False):
@@ -32,8 +32,8 @@ def test1_file(tmp_path):
     return filename
 
 
-def test_open_by_step(test1_file):
-    with xr.open_dataset(test1_file) as ds:
+def test_open_by_step(test_by_step_file):
+    with xr.open_dataset(test_by_step_file) as ds:
         assert ds.keys() == {"arr1d"}
         assert ds.sizes == {"time": 5, "x": 10, "redundant": 5}
         assert ds.coords.keys() == {"time", "x"}

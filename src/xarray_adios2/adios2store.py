@@ -66,6 +66,8 @@ class Adios2Store(WritableCFDataStore):
         mode: str = "rra",
         lock: Lock | None = None,
         autoclose: bool = False,
+        parameters: Mapping[str, Any] | None = None,
+        engine_type: str | None = None,
     ) -> Adios2Store:
         if lock is None:
             if mode in ("r", "rra"):
@@ -73,7 +75,13 @@ class Adios2Store(WritableCFDataStore):
             else:
                 lock = combine_locks([ADIOS2_LOCK, get_write_lock(filename)])  # type: ignore[no-untyped-call]
 
-        manager = CachingFileManager(adios2py.File, filename, mode=mode)
+        kwargs: dict[str, Any] = {}
+        if parameters is not None:
+            kwargs["parameters"] = tuple(parameters.items())
+        if engine_type is not None:
+            kwargs["engine_type"] = engine_type
+
+        manager = CachingFileManager(adios2py.File, filename, mode=mode, kwargs=kwargs)
         return cls(manager, mode=mode, lock=lock, autoclose=autoclose)
 
     def acquire(self, needs_lock: bool = True) -> adios2py.Group:

@@ -24,7 +24,7 @@ def test_open_one_step(one_step_file, sample_dataset):
 
 @pytest.fixture
 def by_step_file_adios2py(tmp_path, sample_dataset):
-    filename = tmp_path / "test1.bp"
+    filename = tmp_path / "by_step_adios2py.bp"
     step_dimension = "time"
     with adios2py.File(filename, mode="w") as file:
         file.attrs["step_dimension"] = step_dimension
@@ -39,7 +39,7 @@ def by_step_file_adios2py(tmp_path, sample_dataset):
 
 @pytest.fixture
 def by_step_file(tmp_path, sample_dataset):
-    filename = tmp_path / "test1.bp"
+    filename = tmp_path / "by_step.bp"
     step_dimension = "time"
     with adios2py.File(filename, mode="w") as file:
         file.attrs["step_dimension"] = step_dimension
@@ -51,7 +51,21 @@ def by_step_file(tmp_path, sample_dataset):
     return filename
 
 
-@pytest.mark.parametrize("filename", ["by_step_file_adios2py", "by_step_file"])
+@pytest.fixture
+def by_step_file_at_once(tmp_path, sample_dataset):
+    filename = tmp_path / "by_step_at_once.bp"
+    # FIXME, should be put into .encoding, but it's lost by the time we get to
+    # Adios2Store.store
+    sample_dataset.attrs["step_dimension"] = "time"
+    with adios2py.File(filename, mode="w") as file:
+        sample_dataset.dump_to_store(Adios2Store(file))
+
+    return filename
+
+
+@pytest.mark.parametrize(
+    "filename", ["by_step_file_adios2py", "by_step_file", "by_step_file_at_once"]
+)
 def test_open_by_step(filename, sample_dataset, request):
     filename = request.getfixturevalue(filename)
     with xr.open_dataset(filename) as ds:
@@ -66,7 +80,9 @@ def test_open_by_step(filename, sample_dataset, request):
                 assert np.array_equal(ds[name], sample_dataset[name])
 
 
-@pytest.mark.parametrize("filename", ["by_step_file_adios2py", "by_step_file"])
+@pytest.mark.parametrize(
+    "filename", ["by_step_file_adios2py", "by_step_file", "by_step_file_at_once"]
+)
 def test_open_by_step_streaming(filename, sample_dataset, request):
     filename = request.getfixturevalue(filename)
     with adios2py.File(filename, "r") as file:

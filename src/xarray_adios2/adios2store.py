@@ -148,8 +148,24 @@ class Adios2Store(WritableCFDataStore):
         variables, attributes = self.encode(variables, attributes)  # type:ignore[no-untyped-call]
 
         if isinstance(self.ds, adios2py.File):
-            with self.ds.steps.next() as step:
-                self._write(step, variables, attributes)
+            step_dimension = attributes.get("step_dimension", None)
+            if step_dimension is not None:
+                for name, attr in attributes.items():
+                    self.ds.attrs[name] = attr
+
+                n_steps = len(variables[step_dimension])
+                for n in range(n_steps):
+                    with self.ds.steps.next() as step:
+                        step_variables = {
+                            name: var.isel({step_dimension: n}, missing_dims="ignore")
+                            for name, var in variables.items()
+                        }
+                        Adios2Store(step).store(step_variables, {})
+            else:
+                # write whole Dataset into single step
+                with self.ds.steps.next() as step:
+                    self._write(step, variables, attributes)
+
         elif isinstance(self.ds, adios2py.Step):
             self._write(self.ds, variables, attributes)
         else:

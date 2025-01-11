@@ -58,6 +58,7 @@ class Adios2Store(WritableCFDataStore):
         self.autoclose = autoclose
         self._step_dimension = kwargs.pop("step_dimension", None)
         self._filename = self.ds._file.filename
+        self._global_attrs: dict[str, Any] | None = None
 
     @classmethod
     def open(
@@ -88,6 +89,9 @@ class Adios2Store(WritableCFDataStore):
         return self.acquire()
 
     def open_store_variable(self, name: str, var: adios2py.ArrayProxy) -> Variable:
+        if not self._global_attrs:
+            self._global_attrs = dict(self.ds.attrs)
+
         attrs = dict(var.attrs)
         dimensions = attrs.pop("dimensions", "").split()
         dimensions = (
@@ -111,7 +115,10 @@ class Adios2Store(WritableCFDataStore):
 
     @override
     def get_attrs(self) -> Mapping[str, Any]:
-        return FrozenDict(self.ds.attrs)
+        if self._global_attrs is None:
+            return FrozenDict(self.ds.attrs)
+
+        return FrozenDict(self._global_attrs)
 
     @override
     def get_dimensions(self) -> Never:

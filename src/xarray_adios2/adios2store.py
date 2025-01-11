@@ -75,6 +75,7 @@ class Adios2Store(WritableCFDataStore):
             else:
                 lock = combine_locks([ADIOS2_LOCK, get_write_lock(filename)])  # type: ignore[no-untyped-call]
 
+        assert isinstance(filename, str | os.PathLike)
         kwargs: dict[str, Any] = {}
         if parameters is not None:
             kwargs["parameters"] = tuple(parameters.items())

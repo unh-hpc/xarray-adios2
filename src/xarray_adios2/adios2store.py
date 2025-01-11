@@ -186,8 +186,7 @@ class Adios2Store(WritableCFDataStore):
     ) -> None:
         for name, var in variables.items():
             step[name] = var
-            dims = var.encoding.pop("prepend dimensions", "").split() + list(var.dims)
-            step[name].attrs["dimensions"] = " ".join(dims)
+            step[name].attrs["dimensions"] = " ".join(var.dims)  # type: ignore[arg-type]
             step[name].attrs["dtype"] = str(var.dtype)
             for attr_name, attr in var.attrs.items():
                 step[name].attrs[attr_name] = attr

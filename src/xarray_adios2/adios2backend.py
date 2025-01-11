@@ -46,12 +46,11 @@ class Adios2BackendEntrypoint(BackendEntrypoint):
         drop_variables: str | Iterable[str] | None = None,
         use_cftime: bool | None = None,
         decode_timedelta: bool | None = None,
-        **kwargs: Any,
     ) -> Dataset:
         if isinstance(filename_or_obj, str | os.PathLike):
-            store = Adios2Store.open(filename_or_obj, **kwargs)
+            store = Adios2Store.open(filename_or_obj)
         elif isinstance(filename_or_obj, adios2py.Group):
-            store = Adios2Store(filename_or_obj, **kwargs)
+            store = Adios2Store(filename_or_obj)
         else:
             msg = f"unknown {filename_or_obj=}"
             raise TypeError(msg)

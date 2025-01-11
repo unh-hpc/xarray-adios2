@@ -45,7 +45,6 @@ class Adios2Store(WritableCFDataStore):
         mode: str | None = None,
         lock: Lock = ADIOS2_LOCK,
         autoclose: bool = False,
-        **kwargs: Any,
     ):
         if isinstance(manager, adios2py.Group):
             mode = manager._file._mode
@@ -56,9 +55,9 @@ class Adios2Store(WritableCFDataStore):
         self._mode = mode
         self.lock = ensure_lock(lock)  # type: ignore[no-untyped-call]
         self.autoclose = autoclose
-        self._step_dimension = kwargs.pop("step_dimension", None)
         self._filename = self.ds._file.filename
         self._global_attrs: dict[str, Any] | None = None
+        self._encoding: dict[str, Any] = {}
 
     @classmethod
     def open(
@@ -67,7 +66,6 @@ class Adios2Store(WritableCFDataStore):
         mode: str = "rra",
         lock: Lock | None = None,
         autoclose: bool = False,
-        **kwargs: Any,
     ) -> Adios2Store:
         if lock is None:
             if mode in ("r", "rra"):
@@ -76,7 +74,7 @@ class Adios2Store(WritableCFDataStore):
                 lock = combine_locks([ADIOS2_LOCK, get_write_lock(filename)])  # type: ignore[no-untyped-call]
 
         manager = CachingFileManager(adios2py.File, filename, mode=mode)
-        return cls(manager, mode=mode, lock=lock, autoclose=autoclose, **kwargs)
+        return cls(manager, mode=mode, lock=lock, autoclose=autoclose)
 
     def acquire(self, needs_lock: bool = True) -> adios2py.Group:
         with self._manager.acquire_context(needs_lock) as group:  # type: ignore[no-untyped-call]
@@ -88,9 +86,19 @@ class Adios2Store(WritableCFDataStore):
     def ds(self) -> adios2py.Group:
         return self.acquire()
 
+    def _read_global_attributes(self) -> None:
+        self._global_attrs = dict(self.ds.attrs)
+        self._step_dimension = self._global_attrs.get("step_dimension", None)
+        if self._step_dimension is not None:
+            self._encoding["step_dimension"] = self._step_dimension
+        if isinstance(self.ds, adios2py.Step):
+            # When reading the whole file step-by-step, add the additional step dimension,
+            # but not if we're only reading a single step
+            self._step_dimension = None
+
     def open_store_variable(self, name: str, var: adios2py.ArrayProxy) -> Variable:
         if not self._global_attrs:
-            self._global_attrs = dict(self.ds.attrs)
+            self._read_global_attributes()
 
         attrs = dict(var.attrs)
         dimensions = attrs.pop("dimensions", "").split()
@@ -115,14 +123,18 @@ class Adios2Store(WritableCFDataStore):
 
     @override
     def get_attrs(self) -> Mapping[str, Any]:
-        if self._global_attrs is None:
-            return FrozenDict(self.ds.attrs)
+        if not self._global_attrs:
+            self._read_global_attributes()
 
         return FrozenDict(self._global_attrs)
 
     @override
     def get_dimensions(self) -> Never:
         raise NotImplementedError()
+
+    @override
+    def get_encoding(self) -> Mapping[str, Any]:
+        return self._encoding
 
     @override
     def store(

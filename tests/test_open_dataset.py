@@ -38,7 +38,7 @@ def test_by_step_file_adios2py(tmp_path, sample_dataset):
 
 
 def test_open_by_step(test_by_step_file_adios2py, sample_dataset):
-    with xr.open_dataset(test_by_step_file_adios2py, step_dimension="time") as ds:
+    with xr.open_dataset(test_by_step_file_adios2py) as ds:
         assert ds.keys() == sample_dataset.keys()
         assert ds.sizes == sample_dataset.sizes
         assert ds.coords.keys() == sample_dataset.coords.keys()
@@ -58,5 +58,3 @@ def test_open_by_step_streaming(test_by_step_file_adios2py, sample_dataset):
             sample_step = sample_dataset.isel(time=n)
             assert ds_step.equals(sample_step)
             assert set(ds_step.coords.keys()) == set(sample_step.coords.keys())
-            print("ds_step", ds_step)
-            print("\nref", sample_step)

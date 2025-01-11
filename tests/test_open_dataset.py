@@ -23,26 +23,26 @@ def test_open_one_step(one_step_file, sample_dataset):
 
 
 @pytest.fixture
-def test_by_step_file_adios2py(tmp_path):
+def test_by_step_file_adios2py(tmp_path, sample_dataset):
     filename = tmp_path / "test1.bp"
     with adios2py.File(filename, mode="w") as file:
-        for n, step in zip(range(5), file.steps, strict=False):
-            step["time"] = 10.0 * n
-            step["time"].attrs["dimensions"] = "time"
-
-            step["x"] = np.linspace(0, 1, 10)
-            step["x"].attrs["dimensions"] = "redundant x"
-
-            step["arr1d"] = np.arange(10) + n
-            step["arr1d"].attrs["dimensions"] = "time x"
+        for time, step in zip(sample_dataset["time"], file.steps, strict=False):
+            ds_step = sample_dataset.sel(time=time)
+            for name in ds_step.variables:
+                step[name] = ds_step[name]
+                step[name].attrs["dimensions"] = " ".join(("time", *ds_step[name].dims))
 
     return filename
 
 
-def test_open_by_step(test_by_step_file_adios2py):
+def test_open_by_step(test_by_step_file_adios2py, sample_dataset):
     with xr.open_dataset(test_by_step_file_adios2py) as ds:
-        assert ds.keys() == {"arr1d"}
-        assert ds.sizes == {"time": 5, "x": 10, "redundant": 5}
-        assert ds.coords.keys() == {"time", "x"}
-        assert np.array_equal(ds.arr1d.isel(time=0), np.arange(10))
-        assert np.array_equal(ds.arr1d.isel(time=1), np.arange(10) + 1)
+        assert ds.keys() == sample_dataset.keys()
+        assert ds.sizes == sample_dataset.sizes
+        assert ds.coords.keys() == sample_dataset.coords.keys()
+        assert ds.broadcast_equals(sample_dataset)
+        for name in sample_dataset.variables:
+            if name == "x":
+                assert np.array_equal(ds[name].isel(time=0), sample_dataset[name])
+            else:
+                assert np.array_equal(ds[name], sample_dataset[name])

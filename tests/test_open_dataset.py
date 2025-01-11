@@ -25,9 +25,11 @@ def test_open_one_step(one_step_file, sample_dataset):
 @pytest.fixture
 def test_by_step_file_adios2py(tmp_path, sample_dataset):
     filename = tmp_path / "test1.bp"
+    step_dimension = "time"
     with adios2py.File(filename, mode="w") as file:
-        for time, step in zip(sample_dataset["time"], file.steps, strict=False):
-            ds_step = sample_dataset.sel(time=time)
+        file.attrs["step_dimension"] = step_dimension
+        for time, step in zip(sample_dataset[step_dimension], file.steps, strict=False):
+            ds_step = sample_dataset.sel({step_dimension: time})
             for name in ds_step.variables:
                 step[name] = ds_step[name]
                 step[name].attrs["dimensions"] = " ".join(ds_step[name].dims)

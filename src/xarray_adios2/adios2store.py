@@ -86,7 +86,7 @@ class Adios2Store(WritableCFDataStore):
 
     def open_store_variable(self, name: str, var: adios2py.ArrayProxy) -> Variable:
         attrs = dict(var.attrs)
-        dimensions = attrs.pop("dimensions", "").split(" ")
+        dimensions = attrs.pop("dimensions", "").split()
         data = indexing.LazilyIndexedArray(Adios2Array(name, self))
         encoding: dict[str, Any] = {}
 

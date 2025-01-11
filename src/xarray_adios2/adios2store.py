@@ -45,6 +45,7 @@ class Adios2Store(WritableCFDataStore):
         mode: str | None = None,
         lock: Lock = ADIOS2_LOCK,
         autoclose: bool = False,
+        **kwargs: Any,
     ):
         if isinstance(manager, adios2py.Group):
             mode = manager._file._mode
@@ -55,6 +56,7 @@ class Adios2Store(WritableCFDataStore):
         self._mode = mode
         self.lock = ensure_lock(lock)  # type: ignore[no-untyped-call]
         self.autoclose = autoclose
+        self._step_dimension = kwargs.pop("step_dimension", None)
         self._filename = self.ds._file.filename
 
     @classmethod
@@ -64,6 +66,7 @@ class Adios2Store(WritableCFDataStore):
         mode: str = "rra",
         lock: Lock | None = None,
         autoclose: bool = False,
+        **kwargs: Any,
     ) -> Adios2Store:
         if lock is None:
             if mode in ("r", "rra"):
@@ -72,7 +75,7 @@ class Adios2Store(WritableCFDataStore):
                 lock = combine_locks([ADIOS2_LOCK, get_write_lock(filename)])  # type: ignore[no-untyped-call]
 
         manager = CachingFileManager(adios2py.File, filename, mode=mode)
-        return cls(manager, mode=mode, lock=lock, autoclose=autoclose)
+        return cls(manager, mode=mode, lock=lock, autoclose=autoclose, **kwargs)
 
     def acquire(self, needs_lock: bool = True) -> adios2py.Group:
         with self._manager.acquire_context(needs_lock) as group:  # type: ignore[no-untyped-call]
@@ -87,6 +90,9 @@ class Adios2Store(WritableCFDataStore):
     def open_store_variable(self, name: str, var: adios2py.ArrayProxy) -> Variable:
         attrs = dict(var.attrs)
         dimensions = attrs.pop("dimensions", "").split()
+        dimensions = (
+            [self._step_dimension, *dimensions] if self._step_dimension else dimensions
+        )
         data = indexing.LazilyIndexedArray(Adios2Array(name, self))
         encoding: dict[str, Any] = {}
 

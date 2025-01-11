@@ -7,7 +7,7 @@ from typing import Any
 
 import adios2py
 from typing_extensions import override
-from xarray.backends.common import AbstractDataStore, BackendEntrypoint, _normalize_path
+from xarray.backends.common import AbstractDataStore, BackendEntrypoint
 from xarray.backends.store import StoreBackendEntrypoint
 from xarray.core.dataset import Dataset
 from xarray.core.datatree import DataTree
@@ -46,12 +46,12 @@ class Adios2BackendEntrypoint(BackendEntrypoint):
         drop_variables: str | Iterable[str] | None = None,
         use_cftime: bool | None = None,
         decode_timedelta: bool | None = None,
+        **kwargs: Any,
     ) -> Dataset:
         if isinstance(filename_or_obj, str | os.PathLike):
-            filename = _normalize_path(filename_or_obj)
-            store = Adios2Store.open(filename, mode="rra")
+            store = Adios2Store.open(filename_or_obj, **kwargs)
         elif isinstance(filename_or_obj, adios2py.Group):
-            store = Adios2Store(filename_or_obj)
+            store = Adios2Store(filename_or_obj, **kwargs)
         else:
             msg = f"unknown {filename_or_obj=}"
             raise TypeError(msg)

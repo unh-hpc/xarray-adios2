@@ -30,13 +30,13 @@ def test_by_step_file_adios2py(tmp_path, sample_dataset):
             ds_step = sample_dataset.sel(time=time)
             for name in ds_step.variables:
                 step[name] = ds_step[name]
-                step[name].attrs["dimensions"] = " ".join(("time", *ds_step[name].dims))
+                step[name].attrs["dimensions"] = " ".join(ds_step[name].dims)
 
     return filename
 
 
 def test_open_by_step(test_by_step_file_adios2py, sample_dataset):
-    with xr.open_dataset(test_by_step_file_adios2py) as ds:
+    with xr.open_dataset(test_by_step_file_adios2py, step_dimension="time") as ds:
         assert ds.keys() == sample_dataset.keys()
         assert ds.sizes == sample_dataset.sizes
         assert ds.coords.keys() == sample_dataset.coords.keys()

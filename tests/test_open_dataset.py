@@ -46,3 +46,15 @@ def test_open_by_step(test_by_step_file_adios2py, sample_dataset):
                 assert np.array_equal(ds[name].isel(time=0), sample_dataset[name])
             else:
                 assert np.array_equal(ds[name], sample_dataset[name])
+
+
+def test_open_by_step_streaming(test_by_step_file_adios2py, sample_dataset):
+    with adios2py.File(test_by_step_file_adios2py, "r") as file:
+        for n, step in enumerate(file.steps):
+            ds_step = xr.open_dataset(Adios2Store(step))
+            ds_step = ds_step.set_coords("time")
+            sample_step = sample_dataset.isel(time=n)
+            assert ds_step.equals(sample_step)
+            assert set(ds_step.coords.keys()) == set(sample_step.coords.keys())
+            print("ds_step", ds_step)
+            print("\nref", sample_step)

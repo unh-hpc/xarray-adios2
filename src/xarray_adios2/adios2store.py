@@ -165,7 +165,7 @@ class Adios2Store(WritableCFDataStore):
                 for name, attr in attributes.items():
                     self.ds.attrs[name] = attr
 
-                n_steps = len(variables[step_dimension])
+                n_steps = variables[step_dimension].sizes[step_dimension]
                 for n, step in zip(range(n_steps), self.ds.steps, strict=False):
                     step_variables = {
                         name: var.isel({step_dimension: n}, missing_dims="ignore")

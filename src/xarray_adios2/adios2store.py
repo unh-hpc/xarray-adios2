@@ -110,10 +110,8 @@ class Adios2Store(WritableCFDataStore):
             self._read_global_attributes()
 
         attrs = dict(var.attrs)
-        dimensions = attrs.pop("dimensions", "").split()
-        dimensions = (
-            [self._step_dimension, *dimensions] if self._step_dimension else dimensions
-        )
+        dims = attrs.pop("dimensions", "").split()
+        dimensions = [self._step_dimension, *dims] if self._step_dimension else dims
         data = indexing.LazilyIndexedArray(Adios2Array(name, self))
         encoding: dict[str, Any] = {}
 
@@ -121,6 +119,11 @@ class Adios2Store(WritableCFDataStore):
         encoding["source"] = self._filename
         encoding["original_shape"] = var.shape
         encoding["dtype"] = var.dtype
+
+        if len(dimensions) != data.ndim and not dims:
+            # if we have no info, not much we can do...
+            # print(f"Variable without dimensions: {var_name}")
+            dimensions = tuple(f"dim_{dim}_{len}" for dim, len in enumerate(data.shape))
 
         return Variable(dimensions, data, attrs, encoding)
 

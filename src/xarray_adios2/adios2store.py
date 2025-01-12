@@ -41,15 +41,16 @@ class Adios2Store(WritableCFDataStore):
 
     def __init__(
         self,
-        manager: FileManager | adios2py.File,
+        manager: FileManager | adios2py.Group,
         mode: str | None = None,
         lock: Lock = ADIOS2_LOCK,
         autoclose: bool = False,
     ):
-        if isinstance(manager, adios2py.File):
-            mode = manager._mode
+        if isinstance(manager, adios2py.Group):
+            mode = manager._file._mode
             manager = DummyFileManager(manager)  # type: ignore[no-untyped-call]
 
+        assert isinstance(manager, FileManager)
         self._manager = manager
         self._mode = mode
         self.lock = ensure_lock(lock)  # type: ignore[no-untyped-call]
@@ -85,7 +86,7 @@ class Adios2Store(WritableCFDataStore):
 
     def open_store_variable(self, name: str, var: adios2py.ArrayProxy) -> Variable:
         attrs = dict(var.attrs)
-        dimensions = attrs.pop("dimensions", "").split(" ")
+        dimensions = attrs.pop("dimensions", "").split()
         data = indexing.LazilyIndexedArray(Adios2Array(name, self))
         encoding: dict[str, Any] = {}
 
@@ -109,3 +110,39 @@ class Adios2Store(WritableCFDataStore):
     @override
     def get_dimensions(self) -> Never:
         raise NotImplementedError()
+
+    @override
+    def store(
+        self,
+        variables: Mapping[str, Variable],
+        attributes: Mapping[str, Any],
+        check_encoding_set: Any = frozenset(),
+        writer: Any = None,
+        unlimited_dims: bool | None = None,
+    ) -> None:
+        variables, attributes = self.encode(variables, attributes)  # type:ignore[no-untyped-call]
+
+        if isinstance(self.ds, adios2py.File):
+            with self.ds.steps.next() as step:
+                self._write(step, variables, attributes)
+        elif isinstance(self.ds, adios2py.Step):
+            self._write(self.ds, variables, attributes)
+        else:
+            raise NotImplementedError()
+
+    def _write(
+        self,
+        step: adios2py.Step,
+        variables: Mapping[str, Variable],
+        attributes: Mapping[str, Any],
+    ) -> None:
+        for name, var in variables.items():
+            step[name] = var
+            dims = var.encoding.pop("prepend dimensions", "").split() + list(var.dims)
+            step[name].attrs["dimensions"] = " ".join(dims)
+            step[name].attrs["dtype"] = str(var.dtype)
+            for attr_name, attr in var.attrs.items():
+                step[name].attrs[attr_name] = attr
+
+        for attr_name, attr in attributes.items():
+            step.attrs[attr_name] = attr

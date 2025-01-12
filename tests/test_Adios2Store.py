@@ -7,40 +7,36 @@ import pytest
 from xarray_adios2 import Adios2Store
 
 
-@pytest.fixture
-def test1_file(tmp_path):
-    filename = tmp_path / "test1.bp"
-    with adios2py.File(filename, mode="w") as file:
-        for n, step in zip(range(5), file.steps, strict=False):
-            step["time"] = 10.0 * n
-            step["time"].attrs["dimensions"] = "time"
-
-            step["x"] = np.linspace(0, 1, 10)
-            step["x"].attrs["dimensions"] = "redundant x"
-
-            step["arr1d"] = np.arange(10) + n
-            step["arr1d"].attrs["dimensions"] = "time x"
-
-    return filename
-
-
-def test_ctor(test1_file):
-    with adios2py.File(test1_file, mode="rra") as file:
+def test_ctor(one_step_file_adios2py):
+    with adios2py.File(one_step_file_adios2py, mode="rra") as file:
         store = Adios2Store(file)
         assert store.ds.keys() == {"arr1d", "x", "time"}
 
 
-def test_open(test1_file):
-    store = Adios2Store.open(test1_file, mode="rra")
+def test_open(one_step_file_adios2py):
+    store = Adios2Store.open(one_step_file_adios2py, mode="rra")
     assert store.ds.keys() == {"arr1d", "x", "time"}
 
 
-def test_load(test1_file):
-    store = Adios2Store.open(test1_file, mode="rra")
-    vars, attrs = store.load()  # type: ignore[no-untyped-call]
-    assert vars["arr1d"].sizes == {"time": 5, "x": 10}
-    assert vars["x"].sizes == {"redundant": 5, "x": 10}
-    assert vars["time"].sizes == {"time": 5}
+@pytest.mark.parametrize("filename", ["one_step_file_adios2py", "one_step_file"])
+def test_load(filename, sample_dataset, request):
+    filename = request.getfixturevalue(filename)
+    with adios2py.File(filename, mode="rra") as file:
+        with file.steps.next() as step:
+            store = Adios2Store(step)
+            vars, attrs = store.load()  # type: ignore[no-untyped-call]
+            for name in sample_dataset.variables:
+                assert vars[name].sizes == sample_dataset[name].sizes
+                assert np.array_equal(vars[name], sample_dataset[name])
+        assert attrs == sample_dataset.attrs
 
-    assert np.array_equal(vars["arr1d"][0], np.arange(10))
-    assert np.array_equal(vars["arr1d"][1], np.arange(10) + 1)
+
+def test_one_step_file(one_step_file, sample_dataset):
+    with adios2py.File(one_step_file, mode="rra") as file:  # noqa: SIM117
+        with file.steps.next() as step:
+            store = Adios2Store(step)
+            vars, attrs = store.load()  # type: ignore[no-untyped-call]
+            for name in sample_dataset.variables:
+                assert vars[name].sizes == sample_dataset[name].sizes
+                assert np.array_equal(vars[name], sample_dataset[name])
+            assert attrs == sample_dataset.attrs

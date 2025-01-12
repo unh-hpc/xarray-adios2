@@ -58,6 +58,7 @@ class Adios2Store(WritableCFDataStore):
         self._filename = self.ds._file.filename
         self._global_attrs: dict[str, Any] | None = None
         self._encoding: dict[str, Any] = {}
+        self._step_dimension: None | str = None
 
     @classmethod
     def open(

@@ -112,8 +112,15 @@ class Adios2Store(WritableCFDataStore):
 
         attrs = dict(var.attrs)
         dims = attrs.pop("dimensions", "").split()
-        dimensions = [self._step_dimension, *dims] if self._step_dimension else dims
-        data = indexing.LazilyIndexedArray(Adios2Array(name, self))
+        if self._step_dimension and len(dims) > 0 and name == dims[0]:
+            # we assume that variables whose name equals their dimensions are coordinates
+            # and are constant in time, so we remove the redundant step dimensions
+            # (or, rather, don't add it in the first place)
+            dimensions = dims
+            data = indexing.LazilyIndexedArray(Adios2Array(name, self, step=0))
+        else:
+            dimensions = [self._step_dimension, *dims] if self._step_dimension else dims
+            data = indexing.LazilyIndexedArray(Adios2Array(name, self))
         encoding: dict[str, Any] = {}
 
         # save source so __repr__ can detect if it's local or not

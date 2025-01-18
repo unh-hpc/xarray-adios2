@@ -21,14 +21,18 @@ class Adios2Array(BackendArray):
         self,
         variable_name: str,
         datastore: Adios2Store,
+        step: int | None = None,
     ) -> None:
         self.variable_name = variable_name
         self.datastore = datastore
+        self.step = step
         array = self.get_array()
         self.shape = array.shape
         self.dtype = array.dtype
 
     def get_array(self, needs_lock: bool = True) -> adios2py.ArrayProxy:
+        if self.step is not None:
+            return self.datastore.acquire(needs_lock).steps[0][self.variable_name]  # type: ignore[attr-defined, no-any-return]
         return self.datastore.acquire(needs_lock)[self.variable_name]
 
     def __getitem__(self, key: indexing.ExplicitIndexer) -> NDArray[Any]:

@@ -72,12 +72,11 @@ def test_open_by_step(filename, sample_dataset, request):
         assert ds.keys() == sample_dataset.keys()
         assert ds.sizes == sample_dataset.sizes
         assert ds.coords.keys() == sample_dataset.coords.keys()
+        for name, coord in ds.coords.items():
+            assert coord.dims == (name,)
         assert ds.broadcast_equals(sample_dataset)
         for name in sample_dataset.variables:
-            if name == "x":
-                assert np.array_equal(ds[name].isel(time=0), sample_dataset[name])
-            else:
-                assert np.array_equal(ds[name], sample_dataset[name])
+            assert np.array_equal(ds[name], sample_dataset[name])
 
 
 @pytest.mark.parametrize(

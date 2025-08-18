@@ -56,7 +56,7 @@ repos:
         args: []
         additional_dependencies:
           - pytest
-          - xarray
+          - xarray<2025.07
           - adios2py
 
   - repo: https://github.com/codespell-project/codespell

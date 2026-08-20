@@ -10,6 +10,8 @@ from xarray.core import indexing
 if TYPE_CHECKING:
     from .adios2store import Adios2Store
 
+# pylint: disable=W0223
+
 
 class Adios2Array(BackendArray):
     """Lazy evaluation of a variable stored in an adios2 file.

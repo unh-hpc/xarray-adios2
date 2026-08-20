@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 from collections.abc import Mapping
-from typing import Any, Protocol
+from typing import Any
 
 import adios2py
 from typing_extensions import Never, override
@@ -26,34 +26,24 @@ from .adios2array import Adios2Array
 ADIOS2_LOCK = SerializableLock()
 
 
-class Lock(Protocol):
-    """Provides duck typing for xarray locks, which do not inherit from a common base class."""
-
-    def acquire(self, blocking: bool = True) -> bool: ...
-    def release(self) -> None: ...
-    def __enter__(self) -> None: ...
-    def __exit__(self, *args: Any) -> None: ...
-    def locked(self) -> bool: ...
-
-
 class Adios2Store(WritableCFDataStore):
     """DataStore to facilitate loading an Adios2 file."""
 
-    def __init__(
+    def __init__(  # type: ignore[no-untyped-def]
         self,
-        manager: FileManager | adios2py.Group,
+        manager: FileManager | adios2py.Group,  #  type: ignore[type-arg]
         mode: str | None = None,
-        lock: Lock = ADIOS2_LOCK,
+        lock=ADIOS2_LOCK,
         autoclose: bool = False,
     ):
         if isinstance(manager, adios2py.Group):
             mode = manager._file._mode
-            manager = DummyFileManager(manager)  # type: ignore[no-untyped-call]
+            manager = DummyFileManager(manager, close=lambda: None)
 
         assert isinstance(manager, FileManager)
         self._manager = manager
         self._mode = mode
-        self.lock = ensure_lock(lock)  # type: ignore[no-untyped-call]
+        self.lock = ensure_lock(lock)
         self.autoclose = autoclose
         self._filename = self.ds._file.filename
         self._global_attrs: dict[str, Any] | None = None
@@ -61,11 +51,11 @@ class Adios2Store(WritableCFDataStore):
         self._step_dimension: None | str = None
 
     @classmethod
-    def open(
+    def open(  # type: ignore[no-untyped-def]
         cls,
-        filename: str | os.PathLike[Any],
+        filename: str,
         mode: str = "rra",
-        lock: Lock | None = None,
+        lock=None,
         autoclose: bool = False,
         parameters: Mapping[str, Any] | None = None,
         engine_type: str | None = None,
@@ -74,7 +64,7 @@ class Adios2Store(WritableCFDataStore):
             if mode in ("r", "rra"):
                 lock = ADIOS2_LOCK
             else:
-                lock = combine_locks([ADIOS2_LOCK, get_write_lock(filename)])  # type: ignore[no-untyped-call]
+                lock = combine_locks([ADIOS2_LOCK, get_write_lock(filename)])
 
         assert isinstance(filename, str | os.PathLike)
         kwargs: dict[str, Any] = {}
@@ -87,7 +77,7 @@ class Adios2Store(WritableCFDataStore):
         return cls(manager, mode=mode, lock=lock, autoclose=autoclose)
 
     def acquire(self, needs_lock: bool = True) -> adios2py.Group:
-        with self._manager.acquire_context(needs_lock) as group:  # type: ignore[no-untyped-call]
+        with self._manager.acquire_context(needs_lock) as group:
             ds = group
         assert isinstance(ds, adios2py.Group)
         return ds

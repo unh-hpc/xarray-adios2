@@ -7,11 +7,13 @@ from typing import Any
 
 import adios2py
 from typing_extensions import override
-from xarray.backends.common import AbstractDataStore, BackendEntrypoint
+from xarray.backends.common import (
+    BackendEntrypoint,
+    T_PathFileOrDataStore,
+)
 from xarray.backends.store import StoreBackendEntrypoint
 from xarray.core.dataset import Dataset
 from xarray.core.datatree import DataTree
-from xarray.core.types import ReadBuffer
 
 from .adios2store import Adios2Store
 
@@ -24,10 +26,7 @@ class Adios2BackendEntrypoint(BackendEntrypoint):
     available = True
 
     @override
-    def guess_can_open(
-        self,
-        filename_or_obj: str | os.PathLike[Any] | ReadBuffer[Any] | AbstractDataStore,
-    ) -> bool:
+    def guess_can_open(self, filename_or_obj: T_PathFileOrDataStore) -> bool:
         if isinstance(filename_or_obj, str | os.PathLike):
             ext = pathlib.Path(filename_or_obj).suffix
             return ext in {".bp"}
@@ -37,7 +36,7 @@ class Adios2BackendEntrypoint(BackendEntrypoint):
     @override
     def open_dataset(
         self,
-        filename_or_obj: str | os.PathLike[Any] | ReadBuffer[Any] | AbstractDataStore,
+        filename_or_obj: T_PathFileOrDataStore,
         *,
         mask_and_scale: bool = True,
         decode_times: bool = True,
@@ -48,7 +47,7 @@ class Adios2BackendEntrypoint(BackendEntrypoint):
         decode_timedelta: bool | None = None,
     ) -> Dataset:
         if isinstance(filename_or_obj, str | os.PathLike):
-            store = Adios2Store.open(filename_or_obj)
+            store = Adios2Store.open(str(filename_or_obj))
         elif isinstance(filename_or_obj, adios2py.Group):
             store = Adios2Store(filename_or_obj)
         else:
@@ -71,7 +70,7 @@ class Adios2BackendEntrypoint(BackendEntrypoint):
     @override
     def open_datatree(
         self,
-        filename_or_obj: str | os.PathLike[Any] | ReadBuffer[Any] | AbstractDataStore,
+        filename_or_obj: T_PathFileOrDataStore,
         **kwargs: Any,
     ) -> DataTree:
         raise NotImplementedError()

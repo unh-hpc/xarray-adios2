@@ -3,10 +3,9 @@ from __future__ import annotations
 import os
 import pathlib
 from collections.abc import Iterable
-from typing import Any
+from typing import Any, override
 
 import adios2py
-from typing_extensions import override
 from xarray.backends.common import (
     BackendEntrypoint,
     T_PathFileOrDataStore,

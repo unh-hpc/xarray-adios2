@@ -2,10 +2,9 @@ from __future__ import annotations
 
 import os
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, Never, override
 
 import adios2py
-from typing_extensions import Never, override
 from xarray.backends import CachingFileManager, DummyFileManager, FileManager
 from xarray.backends.common import (
     WritableCFDataStore,
